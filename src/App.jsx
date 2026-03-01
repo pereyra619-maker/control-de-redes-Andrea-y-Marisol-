@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@supabase/supabase-js";
 import {
   BarChart3,
@@ -1303,18 +1302,11 @@ export default function App() {
   }
 
   function renderActiveTab() {
-    const transitionProps = {
-      initial: { opacity: 0, y: 12, scale: 0.99 },
-      animate: { opacity: 1, y: 0, scale: 1 },
-      exit: { opacity: 0, y: -8, scale: 0.995 },
-      transition: { duration: 0.22, ease: "easeOut" },
-    };
-
-    if (activeTab === "contenido") return <motion.div key="contenido" {...transitionProps}>{renderContenido()}</motion.div>;
-    if (activeTab === "calendario") return <motion.div key="calendario" {...transitionProps}>{renderCalendario()}</motion.div>;
-    if (activeTab === "equipo") return <motion.div key="equipo" {...transitionProps}>{renderEquipo()}</motion.div>;
-    if (activeTab === "ajustes") return <motion.div key="ajustes" {...transitionProps}>{renderAjustes()}</motion.div>;
-    return <motion.div key="dashboard" {...transitionProps}>{renderDashboard()}</motion.div>;
+    if (activeTab === "contenido") return <div>{renderContenido()}</div>;
+    if (activeTab === "calendario") return <div>{renderCalendario()}</div>;
+    if (activeTab === "equipo") return <div>{renderEquipo()}</div>;
+    if (activeTab === "ajustes") return <div>{renderAjustes()}</div>;
+    return <div>{renderDashboard()}</div>;
   }
 
   return (
@@ -1435,20 +1427,14 @@ export default function App() {
             })}
           </div>
 
-          <AnimatePresence mode="wait">{renderActiveTab()}</AnimatePresence>
+          {renderActiveTab()}
         </main>
       </div>
 
-      <AnimatePresence>
+      
         {showItemModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, y: 18, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.985 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-full max-w-4xl rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,26,0.96),rgba(10,10,16,0.94))] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]"
-            >
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+            <div className="w-full max-w-4xl rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,26,0.96),rgba(10,10,16,0.94))] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300">
@@ -1510,21 +1496,15 @@ export default function App() {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      
 
-      <AnimatePresence>
+      
         {showTaskModal && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-            <motion.div
-              initial={{ opacity: 0, y: 18, scale: 0.98 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: 12, scale: 0.985 }}
-              transition={{ duration: 0.22, ease: "easeOut" }}
-              className="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,26,0.96),rgba(10,10,16,0.94))] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]"
-            >
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
+            <div className="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,26,0.96),rgba(10,10,16,0.94))] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
               <div className="mb-5 flex items-start justify-between gap-4">
                 <div>
                   <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300">
@@ -1556,10 +1536,10 @@ export default function App() {
                   <button type="submit" className="rounded-2xl bg-gradient-to-r from-fuchsia-400 to-violet-300 px-5 py-3 text-sm font-semibold text-zinc-950 shadow-[0_10px_30px_rgba(168,85,247,0.28)]">Guardar tarea</button>
                 </div>
               </form>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
-      </AnimatePresence>
+      
     </div>
   );
 }
