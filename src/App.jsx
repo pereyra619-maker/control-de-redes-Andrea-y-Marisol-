@@ -1,46 +1,26 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@supabase/supabase-js";
-import {
-  BarChart3,
-  Bell,
-  CalendarDays,
-  ChevronLeft,
-  ChevronRight,
-  Link2,
-  LogIn,
-  LogOut,
-  Plus,
-  RefreshCcw,
-  Target,
-  Trash2,
-  Users,
-  Sparkles,
-  LayoutDashboard,
-  PanelsTopLeft,
-  ListTodo,
-  SlidersHorizontal,
-  X,
-  Search,
-} from "lucide-react";
 
 const STORAGE_KEYS = {
-  content: "cm_app_content_shared_easy_v2",
-  tasks: "cm_app_tasks_shared_easy_v2",
-  workspaces: "cm_app_workspaces_shared_easy_v2",
-  settings: "cm_app_settings_shared_easy_v2",
-  activity: "cm_app_activity_shared_easy_v2",
+  content: "cm_easy_onefile_content_v1",
+  tasks: "cm_easy_onefile_tasks_v1",
+  workspaces: "cm_easy_onefile_workspaces_v1",
+  settings: "cm_easy_onefile_settings_v1",
+  activity: "cm_easy_onefile_activity_v1",
 };
 
 const CLOUD_TABLE = "cm_shared_boards";
 
-// Dejá estos datos fijos UNA sola vez y después la app ya no los vuelve a pedir.
-// Si los dejás vacíos, la app funciona en modo local.
+// COMPLETAR SOLO UNA VEZ SI QUERÉS TABLERO COMPARTIDO REAL.
+// Si los dejás vacíos, la app funciona perfecto en modo local.
 const FIXED_CLOUD_CONFIG = {
   url: "",
   anonKey: "",
   boardCode: "ANDREA-MARISOL-CM",
   boardTitle: "Tablero compartido Andrea y Marisol",
 };
+
+const defaultWorkspaces = ["Master Class"];
 
 const defaultContent = [
   {
@@ -57,22 +37,18 @@ const defaultContent = [
     link: "https://",
     alcance: 0,
     impresiones: 0,
-    visualizaciones: 0,
     likes: 0,
     comentarios: 0,
     compartidos: 0,
     guardados: 0,
     respuestas: 0,
     clicks: 0,
-    seguidores: 0,
   },
 ];
 
 const defaultTasks = [
   { id: 1, tarea: "Diseñar piezas de la semana", prioridad: "Alta", mesa: "Master Class", estado: "En curso" },
 ];
-
-const defaultWorkspaces = ["Master Class"];
 
 const defaultActivity = [
   {
@@ -82,14 +58,6 @@ const defaultActivity = [
     detail: "Se cargó la demo inicial",
     timestamp: new Date().toISOString(),
   },
-];
-
-const TABS = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "contenido", label: "Contenido", icon: PanelsTopLeft },
-  { id: "calendario", label: "Calendario", icon: CalendarDays },
-  { id: "equipo", label: "Equipo", icon: ListTodo },
-  { id: "ajustes", label: "Ajustes", icon: SlidersHorizontal },
 ];
 
 function readStorage(key, fallback) {
@@ -129,10 +97,10 @@ function calcER(item) {
 
 function getMetricStatus(item) {
   const er = calcER(item);
-  if (!item.alcance) return { label: "Sin datos", tone: "default" };
-  if (er >= 8) return { label: "Buena", tone: "success" };
-  if (er >= 4) return { label: "Regular", tone: "warning" };
-  return { label: "Mala", tone: "danger" };
+  if (!item.alcance) return { label: "Sin datos", tone: "soft" };
+  if (er >= 8) return { label: "Buena", tone: "good" };
+  if (er >= 4) return { label: "Regular", tone: "warn" };
+  return { label: "Mala", tone: "bad" };
 }
 
 function getFormatFocusLabel(format) {
@@ -213,193 +181,230 @@ function getCalendarDays(baseDate) {
   });
 }
 
-function StatCard({ icon: Icon, title, value, hint, onClick, active = false }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`w-full text-left rounded-[28px] border p-5 shadow-[0_18px_50px_rgba(0,0,0,0.35)] backdrop-blur-xl transition duration-300 ${
-        active
-          ? "border-fuchsia-400/30 bg-[linear-gradient(135deg,rgba(168,85,247,0.18),rgba(255,255,255,0.04)_28%,rgba(255,255,255,0.02)_100%)]"
-          : "border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.12),rgba(255,255,255,0.03)_28%,rgba(255,255,255,0.02)_100%)] hover:-translate-y-0.5 hover:border-white/20"
-      }`}
-    >
-      <div className="mb-3 flex items-center justify-between">
-        <span className="text-sm text-zinc-400">{title}</span>
-        <div className="rounded-2xl border border-white/10 bg-white/10 p-2">
-          <Icon className="h-4 w-4 text-zinc-200" />
-        </div>
-      </div>
-      <div className="text-2xl font-semibold tracking-tight text-white">{value}</div>
-      <div className="mt-1 text-xs text-zinc-500">{hint}</div>
-    </button>
-  );
+function Badge({ children, tone = "soft" }) {
+  return <span className={`badge badge-${tone}`}>{children}</span>;
 }
 
-function Badge({ children, tone = "default" }) {
-  const tones = {
-    default: "bg-white/[0.08] text-zinc-200 border-white/10",
-    success: "bg-emerald-500/15 text-emerald-300 border-emerald-400/20",
-    warning: "bg-amber-500/15 text-amber-300 border-amber-400/20",
-    danger: "bg-rose-500/15 text-rose-300 border-rose-400/20",
-    info: "bg-sky-500/15 text-sky-300 border-sky-400/20",
-    premium: "bg-fuchsia-500/15 text-fuchsia-200 border-fuchsia-400/20",
-  };
-
-  return <span className={`inline-flex items-center rounded-full border px-3 py-1 text-[11px] font-medium tracking-wide ${tones[tone]}`}>{children}</span>;
-}
-
-function SummaryCard({ title, total, er, pieces, subtitle }) {
+function Section({ title, subtitle, actions, children }) {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.14),rgba(255,255,255,0.03))] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-      <div className="text-sm font-medium text-zinc-200">{title}</div>
-      <div className="mt-1 text-[11px] uppercase tracking-[0.16em] text-zinc-500">{subtitle}</div>
-      <div className="mt-3 grid gap-2 text-sm text-zinc-400">
-        <div className="flex items-center justify-between">
-          <span>Piezas</span>
-          <span className="font-semibold text-white">{pieces}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>Interacciones</span>
-          <span className="font-semibold text-white">{total.toLocaleString("es-AR")}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <span>ER promedio</span>
-          <span className="font-semibold text-white">{er.toFixed(2)}%</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SafeOption({ children, value }) {
-  return (
-    <option value={value ?? children} style={{ color: "#111827", backgroundColor: "#f5f5f5" }}>
-      {children}
-    </option>
-  );
-}
-
-function SectionCard({ title, subtitle, actions, children }) {
-  return (
-    <section className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] p-5 shadow-[0_14px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-      <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <section className="panel">
+      <div className="panel-head">
         <div>
-          <h2 className="text-xl font-semibold tracking-tight text-white">{title}</h2>
-          {subtitle ? <p className="mt-1 text-sm text-zinc-400">{subtitle}</p> : null}
+          <h2>{title}</h2>
+          {subtitle ? <p className="subtext">{subtitle}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-3">{actions}</div> : null}
+        {actions ? <div className="panel-actions">{actions}</div> : null}
       </div>
       {children}
     </section>
   );
 }
 
+function StatBox({ title, value, hint, onClick }) {
+  return (
+    <button type="button" className="stat-box" onClick={onClick}>
+      <div className="stat-title">{title}</div>
+      <div className="stat-value">{value}</div>
+      <div className="stat-hint">{hint}</div>
+    </button>
+  );
+}
+
+const css = `
+:root {
+  --bg: #070710;
+  --bg2: #0d0d18;
+  --panel: rgba(18,18,30,.92);
+  --panel2: rgba(255,255,255,.04);
+  --line: rgba(255,255,255,.09);
+  --text: #f5f7fb;
+  --muted: #a8adbb;
+  --soft: #d6dbeb;
+  --pink: #d66bff;
+  --violet: #8e72ff;
+  --sky: #48bfff;
+  --green: #2fd48e;
+  --amber: #ffb343;
+  --red: #ff6b7d;
+}
+* { box-sizing: border-box; }
+html, body, #root { min-height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top right, rgba(214,107,255,.16), transparent 28%),
+    radial-gradient(circle at top left, rgba(72,191,255,.10), transparent 22%),
+    linear-gradient(180deg, #050509 0%, #090912 45%, #050509 100%);
+  color: var(--text);
+}
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+input, select, textarea {
+  width: 100%;
+  background: rgba(255,255,255,.03);
+  border: 1px solid var(--line);
+  color: var(--text);
+  border-radius: 14px;
+  padding: 11px 12px;
+  outline: none;
+}
+select option { color: #111827; background: #f6f7fb; }
+.app-shell { max-width: 1600px; margin: 0 auto; padding: 20px; display: flex; gap: 20px; }
+.sidebar {
+  width: 280px; flex-shrink: 0; background: linear-gradient(180deg, rgba(12,12,18,.96), rgba(8,8,12,.88));
+  border: 1px solid var(--line); border-radius: 28px; padding: 18px; display: flex; flex-direction: column;
+  min-height: calc(100vh - 40px); position: sticky; top: 20px; box-shadow: 0 20px 60px rgba(0,0,0,.35);
+}
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 18px; }
+.pill-label { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); background: rgba(255,255,255,.04); border-radius: 999px; padding: 6px 12px; font-size: 12px; color: var(--soft); }
+.brand-title { margin: 10px 0 6px; font-size: 32px; font-weight: 700; }
+.brand-sub { margin: 0; color: var(--muted); line-height: 1.6; font-size: 14px; }
+.nav { margin-top: 20px; display: flex; flex-direction: column; gap: 8px; }
+.nav button { border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--soft); border-radius: 16px; padding: 12px 14px; text-align: left; font-weight: 600; }
+.nav button.active { border: none; color: #16111f; background: linear-gradient(90deg, var(--pink), var(--violet)); box-shadow: 0 10px 30px rgba(214,107,255,.24); }
+.session-box { margin-top: auto; border: 1px solid var(--line); background: rgba(255,255,255,.03); border-radius: 24px; padding: 14px; }
+.hero { border: 1px solid var(--line); background: linear-gradient(135deg, rgba(18,18,30,.95), rgba(8,8,12,.98)); border-radius: 28px; padding: 22px; box-shadow: 0 20px 60px rgba(0,0,0,.30); }
+.hero-top { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.hero-title { margin: 10px 0 6px; font-size: 46px; line-height: 1.05; }
+.hero-sub { margin: 0; max-width: 850px; color: var(--muted); line-height: 1.6; }
+.actions-row, .filters-row, .row-wrap { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.btn { border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--text); border-radius: 14px; padding: 10px 14px; font-weight: 700; }
+.btn-primary { border: none; color: #16111f; background: linear-gradient(90deg, var(--pink), var(--violet)); box-shadow: 0 10px 28px rgba(214,107,255,.25); }
+.btn-soft { background: rgba(255,255,255,.03); }
+.search-box { margin-top: 14px; display: flex; gap: 12px; align-items: center; border: 1px solid var(--line); background: rgba(0,0,0,.22); border-radius: 20px; padding: 10px 14px; }
+.search-box input { border: none; padding: 0; background: transparent; }
+.workspace-chip { border: 1px solid var(--line); background: rgba(255,255,255,.03); color: var(--soft); border-radius: 14px; padding: 8px 12px; font-weight: 700; }
+.workspace-chip.active { border: none; color: #16111f; background: linear-gradient(90deg, var(--pink), var(--violet)); }
+.tab-row-mobile { display: none; gap: 8px; flex-wrap: wrap; }
+.panel { border: 1px solid var(--line); background: linear-gradient(135deg, rgba(255,255,255,.05), rgba(255,255,255,.025)); border-radius: 24px; padding: 18px; box-shadow: 0 14px 40px rgba(0,0,0,.25); }
+.panel-head { display: flex; justify-content: space-between; gap: 14px; align-items: flex-start; flex-wrap: wrap; margin-bottom: 16px; }
+.panel h2 { margin: 0; font-size: 24px; }
+.subtext { margin: 6px 0 0; color: var(--muted); font-size: 14px; line-height: 1.5; }
+.panel-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+.grid-4 { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+.two-col-wide { display: grid; grid-template-columns: 1.1fr .9fr; gap: 16px; }
+.two-col-side { display: grid; grid-template-columns: 1.2fr .8fr; gap: 16px; }
+.stat-box { border: 1px solid var(--line); background: linear-gradient(135deg, rgba(214,107,255,.10), rgba(255,255,255,.03)); border-radius: 22px; padding: 16px; text-align: left; }
+.stat-title { color: var(--muted); font-size: 13px; }
+.stat-value { font-size: 30px; font-weight: 800; margin-top: 6px; }
+.stat-hint { color: #8d93a6; font-size: 12px; margin-top: 4px; }
+.summary-card { border: 1px solid var(--line); background: linear-gradient(135deg, rgba(214,107,255,.12), rgba(255,255,255,.03)); border-radius: 22px; padding: 16px; }
+.summary-row { margin-top: 10px; display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 14px; }
+.summary-row strong { color: var(--text); }
+.card { border: 1px solid var(--line); background: linear-gradient(135deg, rgba(214,107,255,.07), rgba(255,255,255,.03)); border-radius: 24px; padding: 16px; }
+.card + .card { margin-top: 14px; }
+.card-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+.card-title-input { font-size: 18px; font-weight: 800; min-width: 260px; }
+.chips { display: flex; gap: 8px; flex-wrap: wrap; }
+.metrics-top { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; }
+.metric-mini { border: 1px solid var(--line); background: rgba(0,0,0,.20); border-radius: 16px; padding: 10px; }
+.metric-mini small { color: #8d93a6; text-transform: uppercase; letter-spacing: .14em; font-size: 10px; }
+.metric-mini strong { display: block; margin-top: 5px; font-size: 18px; }
+.info-box { margin-top: 14px; border: 1px solid rgba(72,191,255,.20); background: rgba(72,191,255,.10); border-radius: 18px; padding: 14px; }
+.info-title { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #98dcff; font-weight: 800; }
+.info-sub { margin-top: 6px; font-size: 12px; color: var(--muted); text-transform: uppercase; }
+.info-box p { margin: 8px 0 0; color: #f3fbff; line-height: 1.6; font-size: 14px; }
+.card-grid { margin-top: 14px; display: grid; grid-template-columns: 1.1fr 1.2fr; gap: 14px; }
+.inner-box { border: 1px solid var(--line); background: rgba(0,0,0,.20); border-radius: 22px; padding: 14px; }
+.inner-title { margin-bottom: 12px; font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: #8d93a6; font-weight: 800; }
+.form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
+.form-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 10px; }
+.span-2 { grid-column: span 2; }
+.span-3 { grid-column: span 3; }
+.field-label { border: 1px solid var(--line); background: rgba(255,255,255,.03); border-radius: 16px; padding: 10px; }
+.field-label span { display: block; margin-bottom: 6px; font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: #8d93a6; }
+.field-label input { border: none; padding: 0; background: transparent; }
+.helper-box { margin-bottom: 12px; border: 1px solid rgba(255,179,67,.20); background: rgba(255,179,67,.10); border-radius: 16px; padding: 10px; color: var(--soft); font-size: 12px; line-height: 1.55; }
+.badge { display: inline-flex; align-items: center; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; border: 1px solid var(--line); }
+.badge-soft { background: rgba(255,255,255,.06); color: var(--soft); }
+.badge-good { background: rgba(47,212,142,.15); color: #8ff2c3; border-color: rgba(47,212,142,.2); }
+.badge-warn { background: rgba(255,179,67,.15); color: #ffd69a; border-color: rgba(255,179,67,.2); }
+.badge-bad { background: rgba(255,107,125,.15); color: #ffadb7; border-color: rgba(255,107,125,.2); }
+.calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; }
+.calendar-head { text-align: center; font-size: 11px; color: #8d93a6; text-transform: uppercase; letter-spacing: .12em; }
+.day-cell { min-height: 92px; border: 1px solid var(--line); border-radius: 16px; padding: 8px; background: rgba(0,0,0,.18); }
+.day-cell.out { opacity: .48; }
+.day-cell.today { border-color: rgba(255,179,67,.26); background: rgba(255,179,67,.10); }
+.day-number { font-size: 12px; font-weight: 700; }
+.day-tag { margin-top: 6px; border-radius: 10px; background: rgba(255,255,255,.08); padding: 4px 6px; font-size: 10px; color: var(--soft); }
+.alert-list, .stack { display: flex; flex-direction: column; gap: 10px; }
+.list-item { border: 1px solid var(--line); background: rgba(0,0,0,.18); border-radius: 16px; padding: 12px; }
+.list-item-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,.72); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 50; }
+.modal { width: 100%; max-width: 1000px; border: 1px solid var(--line); background: linear-gradient(135deg, rgba(18,18,30,.97), rgba(10,10,16,.96)); border-radius: 28px; padding: 20px; box-shadow: 0 30px 100px rgba(0,0,0,.50); }
+.modal.small-modal { max-width: 760px; }
+.modal-head { display: flex; justify-content: space-between; gap: 10px; align-items: flex-start; margin-bottom: 14px; }
+.modal-head h3 { margin: 8px 0 4px; font-size: 28px; }
+.close-btn { width: 40px; height: 40px; border-radius: 14px; border: 1px solid var(--line); background: rgba(255,255,255,.04); color: var(--text); }
+.note { border: 1px solid rgba(255,107,125,.18); background: rgba(255,107,125,.10); border-radius: 16px; padding: 12px; color: #ffd0d7; margin-top: 12px; }
+@media (max-width: 1280px) {
+  .sidebar { display: none; }
+  .tab-row-mobile { display: flex; }
+  .grid-4 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .grid-3 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .two-col-wide, .two-col-side, .card-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 860px) {
+  .app-shell { padding: 14px; }
+  .hero-title { font-size: 34px; }
+  .grid-4, .grid-3, .grid-2, .metrics-top, .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+  .span-2, .span-3 { grid-column: span 1; }
+  .calendar-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+  .day-cell { min-height: 82px; }
+}
+`;
+
 export default function App() {
   const [content, setContent] = useState(() => readStorage(STORAGE_KEYS.content, defaultContent));
   const [tasks, setTasks] = useState(() => readStorage(STORAGE_KEYS.tasks, defaultTasks));
   const [workspaces, setWorkspaces] = useState(() => readStorage(STORAGE_KEYS.workspaces, defaultWorkspaces));
   const [activity, setActivity] = useState(() => readStorage(STORAGE_KEYS.activity, defaultActivity));
-
-  const storedSettings = readStorage(STORAGE_KEYS.settings, {
-    notifiedIds: [],
-    activeUser: "",
-    sessionActive: false,
-    activeTab: "dashboard",
-  });
-
-  const [activeTab, setActiveTab] = useState(storedSettings.activeTab || "dashboard");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [workspaceFilter, setWorkspaceFilter] = useState("Todas");
   const [networkFilter, setNetworkFilter] = useState("Todas");
   const [searchTerm, setSearchTerm] = useState("");
   const [showItemModal, setShowItemModal] = useState(false);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [newWorkspace, setNewWorkspace] = useState("");
-  const [activeUser, setActiveUser] = useState(storedSettings.activeUser || "");
-  const [sessionActive, setSessionActive] = useState(Boolean(storedSettings.sessionActive));
+  const [activeUser, setActiveUser] = useState("");
+  const [sessionActive, setSessionActive] = useState(false);
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [notificationEnabled, setNotificationEnabled] = useState(false);
-  const [notifiedIds, setNotifiedIds] = useState(storedSettings.notifiedIds || []);
-
+  const [notifiedIds, setNotifiedIds] = useState([]);
   const [cloudClient, setCloudClient] = useState(null);
-  const [cloudStatus, setCloudStatus] = useState(FIXED_CLOUD_CONFIG.url && FIXED_CLOUD_CONFIG.anonKey ? "Pendiente" : "Modo local");
+  const [cloudStatus, setCloudStatus] = useState("Modo local");
   const [cloudError, setCloudError] = useState("");
   const [lastCloudSync, setLastCloudSync] = useState("");
-
   const realtimeChannelRef = useRef(null);
   const notifiedRef = useRef(notifiedIds);
-
   const boardCode = FIXED_CLOUD_CONFIG.boardCode || "ANDREA-MARISOL-CM";
   const boardTitle = FIXED_CLOUD_CONFIG.boardTitle || "Tablero compartido";
-
   const [newItem, setNewItem] = useState({
-    mesa: defaultWorkspaces[0],
-    nombre: "",
-    fecha: formatDate(new Date()),
-    hora: "10:00",
-    red: "Instagram",
-    tipo: "Post",
-    objetivo: "Alcance",
-    campana: "",
-    estado: "Programado",
-    link: "https://",
+    mesa: defaultWorkspaces[0], nombre: "", fecha: formatDate(new Date()), hora: "10:00",
+    red: "Instagram", tipo: "Post", objetivo: "Alcance", campana: "", estado: "Programado", link: "https://",
   });
-
-  const [newTask, setNewTask] = useState({
-    tarea: "",
-    prioridad: "Media",
-    mesa: defaultWorkspaces[0],
-    estado: "Pendiente",
-  });
+  const [newTask, setNewTask] = useState({ tarea: "", prioridad: "Media", mesa: defaultWorkspaces[0], estado: "Pendiente" });
 
   useEffect(() => saveStorage(STORAGE_KEYS.content, content), [content]);
   useEffect(() => saveStorage(STORAGE_KEYS.tasks, tasks), [tasks]);
   useEffect(() => saveStorage(STORAGE_KEYS.workspaces, workspaces), [workspaces]);
   useEffect(() => saveStorage(STORAGE_KEYS.activity, activity), [activity]);
 
-  useEffect(() => {
-    notifiedRef.current = notifiedIds;
-    saveStorage(STORAGE_KEYS.settings, { notifiedIds, activeUser, sessionActive, activeTab });
-  }, [notifiedIds, activeUser, sessionActive, activeTab]);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if (!("Notification" in window)) return;
-    setNotificationEnabled(window.Notification.permission === "granted");
-  }, []);
-
-  useEffect(() => {
-    if (cloudClient) return;
-    if (!FIXED_CLOUD_CONFIG.url || !FIXED_CLOUD_CONFIG.anonKey) return;
-
-    try {
-      const client = createClient(FIXED_CLOUD_CONFIG.url.trim(), FIXED_CLOUD_CONFIG.anonKey.trim());
-      setCloudClient(client);
-      setCloudStatus("Nube lista");
-    } catch (error) {
-      setCloudClient(null);
-      setCloudStatus("Modo local");
-      setCloudError(error?.message || "No se pudo preparar la nube.");
-    }
-  }, [cloudClient]);
-
   const mesas = useMemo(() => ["Todas", ...workspaces], [workspaces]);
-
-  const safeCurrentWorkspace = useMemo(() => {
-    if (workspaceFilter === "Todas") return "Todas";
-    return workspaces.includes(workspaceFilter) ? workspaceFilter : "Todas";
-  }, [workspaceFilter, workspaces]);
+  const safeCurrentWorkspace = useMemo(() => workspaceFilter === "Todas" || workspaces.includes(workspaceFilter) ? workspaceFilter : "Todas", [workspaceFilter, workspaces]);
 
   const filteredContent = useMemo(() => {
     const term = searchTerm.trim().toLowerCase();
     return content.filter((item) => {
       const mesaOk = safeCurrentWorkspace === "Todas" || item.mesa === safeCurrentWorkspace;
       const networkOk = networkFilter === "Todas" || item.red === networkFilter;
-      const searchOk =
-        !term ||
-        [item.nombre, item.campana, item.mesa, item.red, item.tipo, item.objetivo, item.estado, item.link]
-          .filter(Boolean)
-          .some((value) => String(value).toLowerCase().includes(term));
+      const searchOk = !term || [item.nombre, item.campana, item.mesa, item.red, item.tipo, item.objetivo, item.estado, item.link]
+        .filter(Boolean).some((value) => String(value).toLowerCase().includes(term));
       return mesaOk && networkOk && searchOk;
     });
   }, [content, safeCurrentWorkspace, networkFilter, searchTerm]);
@@ -415,339 +420,45 @@ export default function App() {
 
   const totals = useMemo(() => {
     const totalAlcance = filteredContent.reduce((sum, i) => sum + i.alcance, 0);
-    const totalInteractions = filteredContent.reduce((sum, i) => sum + calcInteractions(i), 0);
     const avgER = filteredContent.length ? filteredContent.reduce((sum, i) => sum + calcER(i), 0) / filteredContent.length : 0;
-    return {
-      piezas: filteredContent.length,
-      totalAlcance,
-      totalInteractions,
-      avgER,
-    };
+    return { piezas: filteredContent.length, totalAlcance, avgER };
   }, [filteredContent]);
 
-  const operationalSummary = useMemo(() => {
-    return {
-      publicados: filteredContent.filter((i) => i.estado === "Publicado").length,
-      editados: filteredContent.filter((i) => i.estado === "Editado").length,
-      editando: filteredContent.filter((i) => i.estado === "Editando").length,
-      programados: filteredContent.filter((i) => i.estado === "Programado").length,
-    };
-  }, [filteredContent]);
+  const operationalSummary = useMemo(() => ({
+    publicados: filteredContent.filter((i) => i.estado === "Publicado").length,
+    editados: filteredContent.filter((i) => i.estado === "Editado").length,
+    editando: filteredContent.filter((i) => i.estado === "Editando").length,
+    programados: filteredContent.filter((i) => i.estado === "Programado").length,
+  }), [filteredContent]);
 
-  const piecePerformance = useMemo(() => {
-    return [...filteredContent]
-      .map((item) => ({
-        id: item.id,
-        nombre: item.nombre,
-        mesa: item.mesa,
-        tipo: item.tipo,
-        red: item.red,
-        estado: getMetricStatus(item),
-        interactions: calcInteractions(item),
-        er: calcER(item),
-        explanation: getMetricExplanation(item),
-      }))
-      .filter((item) => item.er > 0 || item.interactions > 0)
-      .sort((a, b) => {
-        const erDiff = b.er - a.er;
-        if (erDiff !== 0) return erDiff;
-        return b.interactions - a.interactions;
-      })
-      .slice(0, 6);
-  }, [filteredContent]);
+  const piecePerformance = useMemo(() => [...filteredContent].map((item) => ({
+    id: item.id, nombre: item.nombre, mesa: item.mesa, tipo: item.tipo, red: item.red,
+    estado: getMetricStatus(item), interactions: calcInteractions(item), er: calcER(item), explanation: getMetricExplanation(item),
+  })).filter((item) => item.er > 0 || item.interactions > 0).sort((a, b) => (b.er - a.er) || (b.interactions - a.interactions)).slice(0, 6), [filteredContent]);
 
-  const topPerformer = useMemo(() => {
-    if (!filteredContent.length) return null;
-    return [...filteredContent].sort((a, b) => {
-      const erDiff = calcER(b) - calcER(a);
-      if (erDiff !== 0) return erDiff;
-      return calcInteractions(b) - calcInteractions(a);
-    })[0];
-  }, [filteredContent]);
-
+  const topPerformer = useMemo(() => filteredContent.length ? [...filteredContent].sort((a, b) => (calcER(b) - calcER(a)) || (calcInteractions(b) - calcInteractions(a)))[0] : null, [filteredContent]);
   const calendarDays = useMemo(() => getCalendarDays(calendarDate), [calendarDate]);
   const todayString = formatDate(new Date());
-
   const itemsByDate = useMemo(() => {
     const map = {};
-    filteredContent.forEach((item) => {
-      if (!item.fecha) return;
-      if (!map[item.fecha]) map[item.fecha] = [];
-      map[item.fecha].push(item);
-    });
+    filteredContent.forEach((item) => { if (!item.fecha) return; if (!map[item.fecha]) map[item.fecha] = []; map[item.fecha].push(item); });
     return map;
-  }, [filteredContent]);
-
-  const upcomingAlerts = useMemo(() => {
-    const now = new Date();
-    return filteredContent
-      .filter((item) => item.estado === "Programado")
-      .map((item) => {
-        const date = buildDateTime(item.fecha, item.hora);
-        if (!date) return null;
-        const diffMin = Math.round((date.getTime() - now.getTime()) / 60000);
-        return { ...item, diffMin };
-      })
-      .filter(Boolean)
-      .filter((item) => item.diffMin <= 60 && item.diffMin >= -180)
-      .sort((a, b) => a.diffMin - b.diffMin);
   }, [filteredContent]);
 
   function addActivity(action, detail, user = activeUser || "Invitada") {
     setActivity((prev) => [createLogEntry(user, action, detail), ...prev].slice(0, 40));
   }
 
-  function getSnapshot() {
-    return {
-      content,
-      tasks,
-      workspaces,
-      activity,
-      updatedBy: activeUser || "Invitada",
-      updatedAt: new Date().toISOString(),
-    };
-  }
-
-  function applySnapshot(snapshot, sourceLabel = "Nube") {
-    if (!snapshot) return;
-    if (Array.isArray(snapshot.content)) setContent(snapshot.content);
-    if (Array.isArray(snapshot.tasks)) setTasks(snapshot.tasks);
-    if (Array.isArray(snapshot.workspaces)) setWorkspaces(snapshot.workspaces);
-    if (Array.isArray(snapshot.activity)) setActivity(snapshot.activity);
-    addActivity("Datos cargados", `Se aplicó un tablero desde ${sourceLabel}`, "Sistema");
-  }
-
-  async function ensureSharedBoardReady() {
-    if (!cloudClient) return;
-
-    setCloudError("");
-
-    const { data, error } = await cloudClient
-      .from(CLOUD_TABLE)
-      .select("payload, updated_at")
-      .eq("share_code", boardCode)
-      .maybeSingle();
-
-    if (error) {
-      setCloudStatus("Error");
-      setCloudError(error.message);
-      return;
-    }
-
-    if (data?.payload) {
-      applySnapshot(data.payload, "tablero compartido");
-      setLastCloudSync(new Date(data.updated_at || new Date()).toLocaleString("es-AR"));
-      setCloudStatus("Sincronizado");
-      return;
-    }
-
-    const payload = getSnapshot();
-    const created = await cloudClient.from(CLOUD_TABLE).upsert(
-      {
-        share_code: boardCode,
-        title: boardTitle,
-        payload,
-        updated_by_name: activeUser || "Invitada",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "share_code" }
-    );
-
-    if (created.error) {
-      setCloudStatus("Error");
-      setCloudError(created.error.message);
-      return;
-    }
-
-    setCloudStatus("Tablero listo");
-    setLastCloudSync(new Date().toLocaleString("es-AR"));
-  }
-
-  async function startSimpleSession() {
-    const cleanName = activeUser.trim();
-    if (!cleanName) {
-      setCloudError("Poné tu nombre para entrar.");
-      return;
-    }
-
-    setSessionActive(true);
-    setCloudError("");
-    addActivity("Sesión iniciada", cleanName, "Sistema");
-
-    if (cloudClient) {
-      await ensureSharedBoardReady();
-    } else {
-      setCloudStatus(FIXED_CLOUD_CONFIG.url && FIXED_CLOUD_CONFIG.anonKey ? "Pendiente" : "Modo local");
-    }
-  }
-
-  function endSimpleSession() {
-    setSessionActive(false);
-    addActivity("Sesión cerrada", activeUser || "Invitada", "Sistema");
-  }
-
-  async function pushToCloud(silent = false) {
-    if (!cloudClient || !sessionActive) return;
-
-    if (!silent) {
-      setCloudError("");
-      setCloudStatus("Sincronizando...");
-    }
-
-    const payload = getSnapshot();
-
-    const { error } = await cloudClient.from(CLOUD_TABLE).upsert(
-      {
-        share_code: boardCode,
-        title: boardTitle,
-        payload,
-        updated_by_name: activeUser || "Invitada",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "share_code" }
-    );
-
-    if (error) {
-      setCloudStatus("Error");
-      setCloudError(error.message);
-      return;
-    }
-
-    const stamp = new Date().toLocaleString("es-AR");
-    setLastCloudSync(stamp);
-    setCloudStatus("Sincronizado");
-    if (!silent) addActivity("Guardado compartido", `Cambios subidos (${stamp})`, "Sistema");
-  }
-
-  async function pullFromCloud(silent = false) {
-    if (!cloudClient || !sessionActive) return;
-
-    if (!silent) {
-      setCloudError("");
-      setCloudStatus("Actualizando...");
-    }
-
-    const { data, error } = await cloudClient
-      .from(CLOUD_TABLE)
-      .select("payload, updated_at")
-      .eq("share_code", boardCode)
-      .maybeSingle();
-
-    if (error) {
-      setCloudStatus("Error");
-      setCloudError(error.message);
-      return;
-    }
-
-    if (data?.payload) {
-      applySnapshot(data.payload, "nube");
-      setLastCloudSync(new Date(data.updated_at || new Date()).toLocaleString("es-AR"));
-      setCloudStatus("Sincronizado");
-      if (!silent) addActivity("Cambios actualizados", "Se bajaron los últimos cambios", "Sistema");
-    }
-  }
-
-  useEffect(() => {
-    if (!cloudClient || !sessionActive) return;
-
-    const channel = cloudClient
-      .channel(`cm-board-${boardCode}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: CLOUD_TABLE,
-          filter: `share_code=eq.${boardCode}`,
-        },
-        () => {
-          pullFromCloud(true);
-        }
-      )
-      .subscribe();
-
-    realtimeChannelRef.current = channel;
-
-    return () => {
-      cloudClient.removeChannel(channel);
-      realtimeChannelRef.current = null;
-    };
-  }, [cloudClient, sessionActive, boardCode]);
-
-  useEffect(() => {
-    if (!cloudClient || !sessionActive) return;
-    const timeout = setTimeout(() => {
-      pushToCloud(true);
-    }, 900);
-    return () => clearTimeout(timeout);
-  }, [content, tasks, workspaces, cloudClient, sessionActive]);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-
-    const interval = window.setInterval(() => {
-      const now = new Date();
-      content.forEach((item) => {
-        if (item.estado !== "Programado") return;
-        const dt = buildDateTime(item.fecha, item.hora);
-        if (!dt) return;
-        const diffMin = Math.round((dt.getTime() - now.getTime()) / 60000);
-        const shouldNotify = diffMin <= 15 && diffMin >= -5;
-        const alreadyNotified = notifiedRef.current.includes(item.id);
-
-        if (shouldNotify && !alreadyNotified) {
-          if (window.Notification.permission === "granted") {
-            new window.Notification("Recordatorio de publicación", {
-              body: `${item.nombre} • ${item.mesa} • ${item.red} a las ${item.hora}`,
-            });
-          }
-          setNotifiedIds((prev) => [...prev, item.id]);
-        }
-      });
-    }, 30000);
-
-    return () => window.clearInterval(interval);
-  }, [content]);
-
-  function closeItemModal() {
-    setShowItemModal(false);
-  }
-
-  function closeTaskModal() {
-    setShowTaskModal(false);
-  }
+  function closeItemModal() { setShowItemModal(false); }
+  function closeTaskModal() { setShowTaskModal(false); }
 
   function handleAddItem(e) {
     e.preventDefault();
     if (!newItem.nombre || !newItem.fecha) return;
-
-    const item = {
-      id: Date.now(),
-      ...newItem,
-      alcance: 0,
-      impresiones: 0,
-      visualizaciones: 0,
-      likes: 0,
-      comentarios: 0,
-      compartidos: 0,
-      guardados: 0,
-      respuestas: 0,
-      clicks: 0,
-      seguidores: 0,
-    };
-
+    const item = { id: Date.now(), ...newItem, alcance: 0, impresiones: 0, likes: 0, comentarios: 0, compartidos: 0, guardados: 0, respuestas: 0, clicks: 0 };
     setContent((prev) => [item, ...prev]);
     addActivity("Nueva pieza", `${item.nombre} en ${item.mesa}`);
-    setNewItem((prev) => ({
-      ...prev,
-      mesa: workspaces[0] || "General",
-      nombre: "",
-      fecha: formatDate(new Date()),
-      hora: "10:00",
-      campana: "",
-      link: "https://",
-      estado: "Programado",
-    }));
+    setNewItem((prev) => ({ ...prev, mesa: workspaces[0] || "General", nombre: "", fecha: formatDate(new Date()), hora: "10:00", campana: "", link: "https://", estado: "Programado" }));
     closeItemModal();
     setActiveTab("contenido");
   }
@@ -758,207 +469,97 @@ export default function App() {
     const taskToAdd = { id: Date.now(), ...newTask };
     setTasks((prev) => [taskToAdd, ...prev]);
     addActivity("Nueva tarea", `${taskToAdd.tarea} • ${taskToAdd.mesa}`);
-    setNewTask({
-      tarea: "",
-      prioridad: "Media",
-      mesa: workspaces[0] || "General",
-      estado: "Pendiente",
-    });
+    setNewTask({ tarea: "", prioridad: "Media", mesa: workspaces[0] || "General", estado: "Pendiente" });
     closeTaskModal();
     setActiveTab("equipo");
   }
 
   function addWorkspace() {
     const value = newWorkspace.trim();
-    if (!value) return;
-    if (workspaces.includes(value)) {
-      setNewWorkspace("");
-      return;
-    }
+    if (!value || workspaces.includes(value)) { setNewWorkspace(""); return; }
     setWorkspaces((prev) => [...prev, value]);
     addActivity("Nueva mesa", value);
     setNewWorkspace("");
-    setNewItem((prev) => ({ ...prev, mesa: value }));
-    setNewTask((prev) => ({ ...prev, mesa: value }));
   }
 
   function removeWorkspace(name) {
-    const fallbackMesa = workspaces.find((w) => w !== name) || "";
-
     setContent((prev) => prev.filter((item) => item.mesa !== name));
     setTasks((prev) => prev.filter((task) => task.mesa !== name));
     setWorkspaces((prev) => prev.filter((w) => w !== name));
-
     addActivity("Mesa eliminada", `${name} y sus datos asociados`);
-
     if (workspaceFilter === name) setWorkspaceFilter("Todas");
-
-    setNewItem((prev) => ({
-      ...prev,
-      mesa: prev.mesa === name ? fallbackMesa : prev.mesa,
-    }));
-
-    setNewTask((prev) => ({
-      ...prev,
-      mesa: prev.mesa === name ? fallbackMesa : prev.mesa,
-    }));
   }
 
-  function updateMetric(id, field, value) {
-    setContent((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: Number(value) || 0 } : item)));
-  }
-
-  function updateMetricWithLog(id, field, value) {
-    updateMetric(id, field, value);
-    const found = content.find((item) => item.id === id);
-    if (!found) return;
-    addActivity("Métrica actualizada", `${found.nombre} • ${field}`);
-  }
-
-  function updateField(id, field, value) {
-    setContent((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item)));
-  }
-
-  function updateFieldWithLog(id, field, value) {
-    updateField(id, field, value);
-    const found = content.find((item) => item.id === id);
-    if (!found) return;
-    addActivity("Contenido editado", `${found.nombre} • ${field}`);
-  }
-
-  function updateContentState(id, newState) {
-    const found = content.find((item) => item.id === id);
-    setContent((prev) => prev.map((item) => (item.id === id ? { ...item, estado: newState } : item)));
-    if (found) addActivity("Estado actualizado", `${found.nombre} → ${newState}`);
-  }
-
-  function updateTaskStatus(id, newStatus) {
-    const found = tasks.find((task) => task.id === id);
-    setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, estado: newStatus } : task)));
-    if (found) addActivity("Tarea actualizada", `${found.tarea} → ${newStatus}`);
-  }
-
-  async function enableNotifications() {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    const permission = await window.Notification.requestPermission();
-    setNotificationEnabled(permission === "granted");
-  }
-
-  function resetDemoData() {
-    setContent(defaultContent);
-    setTasks(defaultTasks);
-    setWorkspaces(defaultWorkspaces);
-    setWorkspaceFilter("Todas");
-    setNetworkFilter("Todas");
-    setSearchTerm("");
-    setNotifiedIds([]);
-    setActivity([createLogEntry("Sistema", "Demo restablecida", "Se restauraron los datos base")]);
-  }
+  function updateMetric(id, field, value) { setContent((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: Number(value) || 0 } : item))); }
+  function updateField(id, field, value) { setContent((prev) => prev.map((item) => (item.id === id ? { ...item, [field]: value } : item))); }
+  function updateContentState(id, newState) { setContent((prev) => prev.map((item) => (item.id === id ? { ...item, estado: newState } : item))); }
+  function updateTaskStatus(id, newStatus) { setTasks((prev) => prev.map((task) => (task.id === id ? { ...task, estado: newStatus } : task))); }
 
   function renderDashboard() {
     return (
-      <div className="space-y-8">
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <StatCard icon={Users} title="Usuario activo" value={activeUser || "Sin nombre"} hint="Ir a ajustes" onClick={() => setActiveTab("ajustes")} active={activeTab === "ajustes"} />
-          <StatCard icon={CalendarDays} title="Piezas" value={totals.piezas} hint="Abrir contenido" onClick={() => setActiveTab("contenido")} active={activeTab === "contenido"} />
-          <StatCard icon={Target} title="Alcance total" value={totals.totalAlcance.toLocaleString("es-AR")} hint="Ver calendario" onClick={() => setActiveTab("calendario")} active={activeTab === "calendario"} />
-          <StatCard icon={BarChart3} title="ER promedio" value={`${totals.avgER.toFixed(2)}%`} hint="Ver equipo" onClick={() => setActiveTab("equipo")} active={activeTab === "equipo"} />
+      <div className="stack">
+        <div className="grid-4">
+          <StatBox title="Usuario activo" value={activeUser || "Sin nombre"} hint="Ir a ajustes" onClick={() => setActiveTab("ajustes")} />
+          <StatBox title="Piezas" value={totals.piezas} hint="Abrir contenido" onClick={() => setActiveTab("contenido")} />
+          <StatBox title="Alcance total" value={totals.totalAlcance.toLocaleString("es-AR")} hint="Ver calendario" onClick={() => setActiveTab("calendario")} />
+          <StatBox title="ER promedio" value={`${totals.avgER.toFixed(2)}%`} hint="Ver equipo" onClick={() => setActiveTab("equipo")} />
         </div>
-
-        <SectionCard
-          title="Rendimiento por pieza"
-          subtitle="Acá ves qué piezas rindieron mejor o peor, una por una, sin mezclar formatos."
-          actions={
-            <select value={networkFilter} onChange={(e) => setNetworkFilter(e.target.value)} className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-300 outline-none">
-              <SafeOption>Todas</SafeOption>
-              <SafeOption>Instagram</SafeOption>
-              <SafeOption>Facebook</SafeOption>
-              <SafeOption>TikTok</SafeOption>
-              <SafeOption>LinkedIn</SafeOption>
-            </select>
-          }
-        >
+        <Section title="Rendimiento por pieza" subtitle="Acá ves qué piezas rindieron mejor o peor, una por una, sin mezclar formatos." actions={
+          <select value={networkFilter} onChange={(e) => setNetworkFilter(e.target.value)}>
+            <option>Todas</option><option>Instagram</option><option>Facebook</option><option>TikTok</option><option>LinkedIn</option>
+          </select>
+        }>
           {piecePerformance.length ? (
-            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            <div className="grid-3">
               {piecePerformance.map((piece) => (
-                <div key={piece.id} className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.14),rgba(255,255,255,0.03))] p-4 shadow-[0_10px_40px_rgba(0,0,0,0.28)] backdrop-blur-xl">
-                  <div className="flex flex-wrap gap-2">
-                    <Badge tone="premium">{piece.mesa}</Badge>
-                    <Badge tone="info">{piece.red}</Badge>
-                    <Badge>{piece.tipo}</Badge>
-                    <Badge tone={piece.estado.tone}>{piece.estado.label}</Badge>
+                <div key={piece.id} className="summary-card">
+                  <div className="chips">
+                    <Badge tone="soft">{piece.mesa}</Badge><Badge tone="soft">{piece.red}</Badge><Badge tone="soft">{piece.tipo}</Badge><Badge tone={piece.estado.tone}>{piece.estado.label}</Badge>
                   </div>
-                  <div className="mt-3 text-sm font-semibold text-white">{piece.nombre}</div>
-                  <div className="mt-3 grid gap-2 text-sm text-zinc-400">
-                    <div className="flex items-center justify-between">
-                      <span>Interacciones</span>
-                      <span className="font-semibold text-white">{piece.interactions.toLocaleString("es-AR")}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <span>ER</span>
-                      <span className="font-semibold text-white">{piece.er.toFixed(2)}%</span>
-                    </div>
-                  </div>
-                  <p className="mt-3 text-xs leading-5 text-zinc-400">{piece.explanation}</p>
+                  <div style={{ marginTop: 12, fontWeight: 800 }}>{piece.nombre}</div>
+                  <div className="summary-row"><span>Interacciones</span><strong>{piece.interactions.toLocaleString("es-AR")}</strong></div>
+                  <div className="summary-row"><span>ER</span><strong>{piece.er.toFixed(2)}%</strong></div>
+                  <p className="subtext" style={{ marginTop: 10 }}>{piece.explanation}</p>
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-zinc-400">Todavía no hay suficientes datos para evaluar piezas individuales.</div>
-          )}
-        </SectionCard>
-
-        <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-          <SectionCard title="Mesas de trabajo" subtitle="Ambas personas manejan las mismas mesas del tablero compartido.">
-            <div className="mb-4 flex flex-wrap items-center gap-2">
-              <input value={newWorkspace} onChange={(e) => setNewWorkspace(e.target.value)} placeholder="Nueva mesa / cliente" className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-200 outline-none" />
-              <button onClick={addWorkspace} className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-zinc-900">
-                Agregar mesa
-              </button>
+          ) : <div className="list-item">Todavía no hay suficientes datos para evaluar piezas individuales.</div>}
+        </Section>
+        <div className="two-col-wide">
+          <Section title="Mesas de trabajo" subtitle="Ambas personas manejan las mismas mesas del tablero compartido.">
+            <div className="row-wrap" style={{ marginBottom: 12 }}>
+              <input value={newWorkspace} onChange={(e) => setNewWorkspace(e.target.value)} placeholder="Nueva mesa / cliente" />
+              <button className="btn btn-primary" onClick={addWorkspace}>Agregar mesa</button>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="row-wrap">
               {mesas.map((mesa) => (
-                <div key={mesa} className="flex items-center gap-1">
-                  <button
-                    onClick={() => setWorkspaceFilter(mesa)}
-                    className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${safeCurrentWorkspace === mesa ? "bg-white text-zinc-900" : "border border-white/10 bg-black/20 text-zinc-300"}`}
-                  >
-                    {mesa}
-                  </button>
-                  {mesa !== "Todas" && (
-                    <button onClick={() => removeWorkspace(mesa)} title="Eliminar mesa y borrar también su contenido y tareas" className="rounded-xl border border-white/10 bg-black/20 p-2 text-zinc-400">
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </button>
-                  )}
+                <div key={mesa} className="row-wrap" style={{ gap: 6 }}>
+                  <button className={`workspace-chip ${safeCurrentWorkspace === mesa ? "active" : ""}`} onClick={() => setWorkspaceFilter(mesa)}>{mesa}</button>
+                  {mesa !== "Todas" && <button className="btn btn-soft" onClick={() => removeWorkspace(mesa)}>Eliminar</button>}
                 </div>
               ))}
             </div>
-          </SectionCard>
-
-          <SectionCard title="Lectura rápida" subtitle="Lo más útil para ver qué está funcionando hoy.">
+          </Section>
+          <Section title="Lectura rápida" subtitle="Lo más útil para ver qué está funcionando hoy.">
             {topPerformer ? (
-              <div className="space-y-3">
-                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-4">
-                  <div className="text-[11px] uppercase tracking-[0.18em] text-emerald-300">Mejor pieza actual</div>
-                  <div className="mt-2 text-lg font-semibold text-white">{topPerformer.nombre}</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge tone="premium">{topPerformer.mesa}</Badge>
-                    <Badge tone="info">{topPerformer.tipo}</Badge>
-                    <Badge tone="success">{getMetricStatus(topPerformer).label}</Badge>
+              <div className="stack">
+                <div className="info-box" style={{ borderColor: "rgba(47,212,142,.20)", background: "rgba(47,212,142,.10)" }}>
+                  <div className="info-title" style={{ color: "#8ff2c3" }}>Mejor pieza actual</div>
+                  <div style={{ marginTop: 8, fontSize: 20, fontWeight: 800 }}>{topPerformer.nombre}</div>
+                  <div className="chips" style={{ marginTop: 8 }}>
+                    <Badge tone="soft">{topPerformer.mesa}</Badge><Badge tone="soft">{topPerformer.tipo}</Badge><Badge tone={getMetricStatus(topPerformer).tone}>{getMetricStatus(topPerformer).label}</Badge>
                   </div>
-                  <p className="mt-3 text-sm leading-6 text-zinc-200">{getMetricExplanation(topPerformer)}</p>
+                  <p>{getMetricExplanation(topPerformer)}</p>
                 </div>
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-3"><span className="text-sm text-zinc-300">Publicado</span><Badge tone="success">{operationalSummary.publicados}</Badge></div>
-                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-3"><span className="text-sm text-zinc-300">Editado</span><Badge tone="info">{operationalSummary.editados}</Badge></div>
-                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-3"><span className="text-sm text-zinc-300">Editando</span><Badge tone="danger">{operationalSummary.editando}</Badge></div>
-                  <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/20 p-3"><span className="text-sm text-zinc-300">Programado</span><Badge tone="warning">{operationalSummary.programados}</Badge></div>
+                <div className="stack">
+                  <div className="list-item list-item-head"><span>Publicado</span><Badge tone="good">{operationalSummary.publicados}</Badge></div>
+                  <div className="list-item list-item-head"><span>Editado</span><Badge tone="soft">{operationalSummary.editados}</Badge></div>
+                  <div className="list-item list-item-head"><span>Editando</span><Badge tone="bad">{operationalSummary.editando}</Badge></div>
+                  <div className="list-item list-item-head"><span>Programado</span><Badge tone="warn">{operationalSummary.programados}</Badge></div>
                 </div>
               </div>
-            ) : (
-              <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-zinc-400">Todavía no hay piezas con datos suficientes para destacar una mejor.</div>
-            )}
-          </SectionCard>
+            ) : <div className="list-item">Todavía no hay piezas con datos suficientes para destacar una mejor.</div>}
+          </Section>
         </div>
       </div>
     );
@@ -966,126 +567,62 @@ export default function App() {
 
   function renderContenido() {
     return (
-      <SectionCard
-        title="Control de contenido"
-        subtitle="Planificación, calendario, estado y métricas por pieza."
-        actions={
-          <>
-            <Badge tone="info">Activo: {activeUser || "Sin nombre"}</Badge>
-            <Badge tone={cloudClient && sessionActive ? "success" : "warning"}>{cloudClient && sessionActive ? "Guardado compartido" : "Modo local"}</Badge>
-          </>
-        }
-      >
-        <div className="space-y-4">
+      <Section title="Control de contenido" subtitle="Planificación, calendario, estado y métricas por pieza." actions={
+        <>
+          <Badge tone="soft">Activo: {activeUser || "Sin nombre"}</Badge>
+          <Badge tone={cloudClient && sessionActive ? "good" : "warn"}>{cloudClient && sessionActive ? "Guardado compartido" : "Modo local"}</Badge>
+        </>
+      }>
+        <div className="stack">
           {filteredContent.map((item) => {
-            const er = calcER(item);
-            const interactions = calcInteractions(item);
-            const metricStatus = getMetricStatus(item);
-            const explanation = getMetricExplanation(item);
-
+            const er = calcER(item), interactions = calcInteractions(item), metricStatus = getMetricStatus(item), explanation = getMetricExplanation(item);
             return (
-              <div key={item.id} className="rounded-[28px] border border-white/10 bg-[linear-gradient(135deg,rgba(168,85,247,0.08),rgba(255,255,255,0.03)_35%,rgba(255,255,255,0.02)_100%)] p-4 shadow-[0_14px_40px_rgba(0,0,0,0.22)] backdrop-blur-xl">
-                <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                  <div className="space-y-3">
-                    <input value={item.nombre} onChange={(e) => updateFieldWithLog(item.id, "nombre", e.target.value)} className="w-full rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-base font-semibold tracking-tight text-white outline-none md:min-w-[320px]" />
-                    <div className="flex flex-wrap gap-2">
-                      <Badge tone="premium">{item.mesa}</Badge>
-                      <Badge tone="info">{item.red}</Badge>
-                      <Badge>{item.tipo}</Badge>
-                      <Badge tone={item.estado === "Publicado" ? "success" : item.estado === "Programado" ? "warning" : item.estado === "Editando" ? "danger" : "info"}>{item.estado}</Badge>
+              <div key={item.id} className="card">
+                <div className="card-head">
+                  <div>
+                    <input className="card-title-input" value={item.nombre} onChange={(e) => updateField(item.id, "nombre", e.target.value)} />
+                    <div className="chips" style={{ marginTop: 10 }}>
+                      <Badge tone="soft">{item.mesa}</Badge><Badge tone="soft">{item.red}</Badge><Badge tone="soft">{item.tipo}</Badge><Badge tone={item.estado === "Publicado" ? "good" : item.estado === "Programado" ? "warn" : item.estado === "Editando" ? "bad" : "soft"}>{item.estado}</Badge>
                     </div>
                   </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Interacciones</div>
-                      <div className="mt-1 text-lg font-semibold text-white">{interactions}</div>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">ER</div>
-                      <div className="mt-1 text-lg font-semibold text-white">{er.toFixed(2)}%</div>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Rendimiento</div>
-                      <div className="mt-1"><Badge tone={metricStatus.tone}>{metricStatus.label}</Badge></div>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-black/20 px-3 py-2">
-                      <div className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Objetivo</div>
-                      <div className="mt-1 text-sm font-medium text-zinc-200">{item.objetivo}</div>
-                    </div>
+                  <div className="metrics-top">
+                    <div className="metric-mini"><small>Interacciones</small><strong>{interactions}</strong></div>
+                    <div className="metric-mini"><small>ER</small><strong>{er.toFixed(2)}%</strong></div>
+                    <div className="metric-mini"><small>Rendimiento</small><strong>{metricStatus.label}</strong></div>
+                    <div className="metric-mini"><small>Objetivo</small><strong style={{ fontSize: 14 }}>{item.objetivo}</strong></div>
                   </div>
                 </div>
-
-                <div className="mb-4 rounded-3xl border border-sky-400/20 bg-sky-500/10 p-4">
-                  <div className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-sky-300">Lectura de la métrica</div>
-                  <div className="mb-2 text-xs font-medium uppercase tracking-[0.14em] text-zinc-400">Qué pesa más acá: {getFormatFocusLabel(item.tipo)}</div>
-                  <p className="text-sm leading-6 text-zinc-100">{explanation}</p>
+                <div className="info-box">
+                  <div className="info-title">Lectura de la métrica</div>
+                  <div className="info-sub">Qué pesa más acá: {getFormatFocusLabel(item.tipo)}</div>
+                  <p>{explanation}</p>
                 </div>
-
-                <div className="grid gap-4 xl:grid-cols-[1.1fr_1.2fr]">
-                  <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                    <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Datos base</div>
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <select value={item.mesa} onChange={(e) => updateFieldWithLog(item.id, "mesa", e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none">
-                        {workspaces.map((mesa) => (
-                          <SafeOption key={mesa}>{mesa}</SafeOption>
-                        ))}
-                      </select>
-                      <select value={item.estado} onChange={(e) => updateContentState(item.id, e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none">
-                        <SafeOption>Programado</SafeOption>
-                        <SafeOption>Editando</SafeOption>
-                        <SafeOption>Editado</SafeOption>
-                        <SafeOption>Publicado</SafeOption>
-                      </select>
-                      <select value={item.red} onChange={(e) => updateFieldWithLog(item.id, "red", e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none">
-                        <SafeOption>Instagram</SafeOption>
-                        <SafeOption>Facebook</SafeOption>
-                        <SafeOption>TikTok</SafeOption>
-                        <SafeOption>LinkedIn</SafeOption>
-                      </select>
-                      <select value={item.tipo} onChange={(e) => updateFieldWithLog(item.id, "tipo", e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none">
-                        <SafeOption>Post</SafeOption>
-                        <SafeOption>Reel</SafeOption>
-                        <SafeOption>Historia</SafeOption>
-                        <SafeOption>Carrusel</SafeOption>
-                        <SafeOption>Anuncio</SafeOption>
-                      </select>
-                      <input type="date" value={item.fecha} onChange={(e) => updateFieldWithLog(item.id, "fecha", e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none" />
-                      <input type="time" value={item.hora || "00:00"} onChange={(e) => updateFieldWithLog(item.id, "hora", e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none" />
-                      <select value={item.objetivo} onChange={(e) => updateFieldWithLog(item.id, "objetivo", e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none md:col-span-2">
-                        <SafeOption>Alcance</SafeOption>
-                        <SafeOption>Interacción</SafeOption>
-                        <SafeOption>Comunidad</SafeOption>
-                        <SafeOption>Leads</SafeOption>
-                        <SafeOption>Ventas</SafeOption>
-                      </select>
-                      <input value={item.campana} onChange={(e) => updateFieldWithLog(item.id, "campana", e.target.value)} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 text-sm outline-none md:col-span-2" placeholder="Campaña" />
-                      <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-2 md:col-span-2">
-                        <Link2 className="h-4 w-4 text-zinc-500" />
-                        <input value={item.link} onChange={(e) => updateFieldWithLog(item.id, "link", e.target.value)} className="w-full bg-transparent text-sm outline-none" placeholder="Link" />
-                      </div>
+                <div className="card-grid">
+                  <div className="inner-box">
+                    <div className="inner-title">Datos base</div>
+                    <div className="form-grid-2">
+                      <select value={item.mesa} onChange={(e) => updateField(item.id, "mesa", e.target.value)}>{workspaces.map((mesa) => <option key={mesa}>{mesa}</option>)}</select>
+                      <select value={item.estado} onChange={(e) => updateContentState(item.id, e.target.value)}><option>Programado</option><option>Editando</option><option>Editado</option><option>Publicado</option></select>
+                      <select value={item.red} onChange={(e) => updateField(item.id, "red", e.target.value)}><option>Instagram</option><option>Facebook</option><option>TikTok</option><option>LinkedIn</option></select>
+                      <select value={item.tipo} onChange={(e) => updateField(item.id, "tipo", e.target.value)}><option>Post</option><option>Reel</option><option>Historia</option><option>Carrusel</option><option>Anuncio</option></select>
+                      <input type="date" value={item.fecha} onChange={(e) => updateField(item.id, "fecha", e.target.value)} />
+                      <input type="time" value={item.hora || "00:00"} onChange={(e) => updateField(item.id, "hora", e.target.value)} />
+                      <select className="span-2" value={item.objetivo} onChange={(e) => updateField(item.id, "objetivo", e.target.value)}><option>Alcance</option><option>Interacción</option><option>Comunidad</option><option>Leads</option><option>Ventas</option></select>
+                      <input className="span-2" value={item.campana} onChange={(e) => updateField(item.id, "campana", e.target.value)} placeholder="Campaña" />
+                      <input className="span-2" value={item.link} onChange={(e) => updateField(item.id, "link", e.target.value)} placeholder="Link" />
                     </div>
                   </div>
-
-                  <div className="rounded-3xl border border-white/10 bg-black/20 p-4">
-                    <div className="mb-3 text-xs font-semibold uppercase tracking-[0.2em] text-zinc-500">Métricas</div>
-                    <div className="mb-4 rounded-2xl border border-amber-400/20 bg-amber-500/10 p-3 text-xs leading-5 text-zinc-300">
-                      <span className="font-semibold text-amber-300">Guía rápida:</span> <span className="text-zinc-200">Alcance</span> = personas únicas que vieron la pieza. <span className="text-zinc-200">Impresiones</span> = cantidad total de veces que se mostró (puede contar repetidas). <span className="text-zinc-200">Likes</span> = reacciones de “me gusta”. No son lo mismo.
-                    </div>
-                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  <div className="inner-box">
+                    <div className="inner-title">Métricas</div>
+                    <div className="helper-box"><strong>Guía rápida:</strong> Alcance = personas únicas. Impresiones = veces que se mostró (puede repetir). Likes = “me gusta”. No son lo mismo.</div>
+                    <div className="form-grid-3">
                       {[
-                        ["alcance", "Alcance"],
-                        ["impresiones", "Impresiones"],
-                        ["likes", "Likes"],
-                        ["comentarios", "Comentarios"],
-                        ["compartidos", "Compartidos"],
-                        ["guardados", "Guardados"],
-                        ["respuestas", "Respuestas"],
-                        ["clicks", "Clicks"],
+                        ["alcance", "Alcance"], ["impresiones", "Impresiones"], ["likes", "Likes"], ["comentarios", "Comentarios"],
+                        ["compartidos", "Compartidos"], ["guardados", "Guardados"], ["respuestas", "Respuestas"], ["clicks", "Clicks"],
                       ].map(([field, label]) => (
-                        <label key={field} className="block rounded-2xl border border-white/10 bg-white/[0.03] p-3">
-                          <span className="mb-1 block text-[11px] uppercase tracking-[0.18em] text-zinc-500">{label}</span>
-                          <input type="number" value={item[field]} onChange={(e) => updateMetricWithLog(item.id, field, e.target.value)} className="w-full bg-transparent text-sm font-medium text-white outline-none" />
+                        <label key={field} className="field-label">
+                          <span>{label}</span>
+                          <input type="number" value={item[field]} onChange={(e) => updateMetric(item.id, field, e.target.value)} />
                         </label>
                       ))}
                     </div>
@@ -1095,94 +632,48 @@ export default function App() {
             );
           })}
         </div>
-      </SectionCard>
+      </Section>
     );
   }
 
   function renderCalendario() {
     return (
-      <div className="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <SectionCard title="Calendario" subtitle="Vista mensual de publicaciones programadas.">
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <button onClick={() => setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))} className="rounded-xl border border-white/10 bg-black/20 p-2">
-                <ChevronLeft className="h-4 w-4" />
-              </button>
-              <div className="min-w-[120px] text-center text-sm font-medium text-zinc-200">{calendarDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" })}</div>
-              <button onClick={() => setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))} className="rounded-xl border border-white/10 bg-black/20 p-2">
-                <ChevronRight className="h-4 w-4" />
-              </button>
+      <div className="two-col-side">
+        <Section title="Calendario" subtitle="Vista mensual de publicaciones programadas.">
+          <div className="list-item-head" style={{ marginBottom: 12 }}>
+            <div className="row-wrap">
+              <button className="btn btn-soft" onClick={() => setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1))}>◀</button>
+              <strong>{calendarDate.toLocaleDateString("es-AR", { month: "long", year: "numeric" })}</strong>
+              <button className="btn btn-soft" onClick={() => setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1))}>▶</button>
             </div>
           </div>
-          <div className="mb-2 grid grid-cols-7 gap-2 text-center text-[11px] uppercase tracking-wide text-zinc-500">
-            {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => (
-              <div key={d}>{d}</div>
-            ))}
+          <div className="calendar-grid" style={{ marginBottom: 8 }}>
+            {["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"].map((d) => <div key={d} className="calendar-head">{d}</div>)}
           </div>
-          <div className="grid grid-cols-7 gap-2">
+          <div className="calendar-grid">
             {calendarDays.map((day) => {
-              const dateKey = formatDate(day);
-              const items = itemsByDate[dateKey] || [];
-              const isCurrentMonth = sameMonth(day, calendarDate);
-              const isToday = dateKey === todayString;
-
+              const dateKey = formatDate(day), items = itemsByDate[dateKey] || [], isCurrentMonth = sameMonth(day, calendarDate), isToday = dateKey === todayString;
               return (
-                <div key={dateKey} className={`min-h-[92px] rounded-2xl border p-2 ${isToday ? "border-amber-400/30 bg-amber-500/10" : isCurrentMonth ? "border-white/10 bg-black/20" : "border-white/5 bg-black/10"}`}>
-                  <div className={`mb-2 text-xs font-medium ${isCurrentMonth ? "text-zinc-200" : "text-zinc-500"}`}>{day.getDate()}</div>
-                  <div className="space-y-1">
-                    {items.slice(0, 2).map((item) => (
-                      <div key={item.id} className="rounded-xl bg-white/10 px-2 py-1 text-[10px] leading-4 text-zinc-200">
-                        {item.hora} • {item.red}
-                      </div>
-                    ))}
-                    {items.length > 2 && <div className="text-[10px] text-zinc-500">+{items.length - 2} más</div>}
-                  </div>
+                <div key={dateKey} className={`day-cell ${!isCurrentMonth ? "out" : ""} ${isToday ? "today" : ""}`}>
+                  <div className="day-number">{day.getDate()}</div>
+                  {items.slice(0, 2).map((item) => <div key={item.id} className="day-tag">{item.hora} • {item.red}</div>)}
+                  {items.length > 2 ? <div className="day-tag">+{items.length - 2} más</div> : null}
                 </div>
               );
             })}
           </div>
-        </SectionCard>
-
-        <div className="space-y-6">
-          <SectionCard title="Recordatorios" subtitle="Avisos de publicaciones próximas según fecha y hora.">
-            <div className="mb-4">
-              <button onClick={enableNotifications} className="inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-sm text-zinc-200">
-                <Bell className="h-4 w-4" />
-                {notificationEnabled ? "Notificaciones activas" : "Activar avisos"}
-              </button>
-            </div>
-            <div className="space-y-3">
-              {upcomingAlerts.length === 0 ? (
-                <div className="rounded-2xl border border-white/10 bg-black/20 p-3 text-sm text-zinc-400">No hay publicaciones próximas en la próxima hora.</div>
-              ) : (
-                upcomingAlerts.map((item) => (
-                  <div key={item.id} className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <div className="font-medium text-white">{item.nombre}</div>
-                        <div className="mt-1 flex flex-wrap gap-2">
-                          <Badge>{item.mesa}</Badge>
-                          <Badge tone="info">{item.red}</Badge>
-                        </div>
-                      </div>
-                      <Badge tone={item.diffMin < 0 ? "danger" : "warning"}>{item.diffMin < 0 ? `Atrasado ${Math.abs(item.diffMin)} min` : `En ${item.diffMin} min`}</Badge>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </SectionCard>
-
-          <SectionCard title="Última actividad" subtitle="Cambios recientes del tablero.">
-            <div className="space-y-3">
+        </Section>
+        <div className="stack">
+          <Section title="Última actividad" subtitle="Cambios recientes del tablero.">
+            <div className="stack">
               {activity.slice(0, 5).map((entry) => (
-                <div key={entry.id} className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                  <div className="text-sm font-medium text-white">{entry.action}</div>
-                  <div className="mt-1 text-xs text-zinc-400">{entry.detail}</div>
+                <div key={entry.id} className="list-item">
+                  <div style={{ fontWeight: 700 }}>{entry.action}</div>
+                  <div className="small muted" style={{ marginTop: 4 }}>{entry.detail}</div>
                 </div>
               ))}
             </div>
-          </SectionCard>
+          </Section>
         </div>
       </div>
     );
@@ -1190,356 +681,189 @@ export default function App() {
 
   function renderEquipo() {
     return (
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <SectionCard title="Tareas del equipo" subtitle="Ambas personas ven y editan las mismas tareas.">
-          <div className="space-y-3">
+      <div className="grid-2">
+        <Section title="Tareas del equipo" subtitle="Ambas personas ven y editan las mismas tareas.">
+          <div className="stack">
             {filteredTasks.map((task) => (
-              <div key={task.id} className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                <div className="flex items-start justify-between gap-3">
+              <div key={task.id} className="list-item">
+                <div className="list-item-head">
                   <div>
-                    <div className="font-medium text-white">{task.tarea}</div>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      <Badge>{task.mesa}</Badge>
-                      <Badge tone={task.prioridad === "Alta" ? "danger" : task.prioridad === "Media" ? "warning" : "info"}>{task.prioridad}</Badge>
+                    <div style={{ fontWeight: 700 }}>{task.tarea}</div>
+                    <div className="chips" style={{ marginTop: 8 }}>
+                      <Badge tone="soft">{task.mesa}</Badge>
+                      <Badge tone={task.prioridad === "Alta" ? "bad" : task.prioridad === "Media" ? "warn" : "soft"}>{task.prioridad}</Badge>
                     </div>
                   </div>
-                  <select value={task.estado} onChange={(e) => updateTaskStatus(task.id, e.target.value)} className="rounded-xl border border-white/10 bg-zinc-900 px-2 py-1 text-xs outline-none">
-                    <SafeOption>Pendiente</SafeOption>
-                    <SafeOption>En curso</SafeOption>
-                    <SafeOption>Hecha</SafeOption>
+                  <select style={{ width: 130 }} value={task.estado} onChange={(e) => updateTaskStatus(task.id, e.target.value)}>
+                    <option>Pendiente</option><option>En curso</option><option>Hecha</option>
                   </select>
                 </div>
               </div>
             ))}
           </div>
-        </SectionCard>
-
-        <SectionCard title="Actividad reciente" subtitle="Movimientos del equipo en el tablero compartido.">
-          <div className="space-y-3">
+        </Section>
+        <Section title="Actividad reciente" subtitle="Movimientos del equipo en el tablero compartido.">
+          <div className="stack">
             {activity.slice(0, 8).map((entry) => (
-              <div key={entry.id} className="rounded-2xl border border-white/10 bg-black/20 p-3">
-                <div className="flex items-center justify-between gap-3">
+              <div key={entry.id} className="list-item">
+                <div className="list-item-head">
                   <div>
-                    <div className="text-sm font-medium text-white">{entry.action}</div>
-                    <div className="mt-1 text-xs text-zinc-400">{entry.detail}</div>
+                    <div style={{ fontWeight: 700 }}>{entry.action}</div>
+                    <div className="small muted" style={{ marginTop: 4 }}>{entry.detail}</div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-xs text-zinc-300">{entry.user}</div>
-                    <div className="text-[11px] text-zinc-500">{new Date(entry.timestamp).toLocaleString("es-AR")}</div>
+                  <div style={{ textAlign: "right" }}>
+                    <div className="small">{entry.user}</div>
+                    <div className="small muted">{new Date(entry.timestamp).toLocaleString("es-AR")}</div>
                   </div>
                 </div>
               </div>
             ))}
           </div>
-        </SectionCard>
+        </Section>
       </div>
     );
   }
 
   function renderAjustes() {
     return (
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-        <SectionCard title="Acceso simple" subtitle="La idea es que vos y Marisol solo entren con su nombre y trabajen. Nada de pegar URLs todos los días.">
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <Badge tone={cloudClient ? "success" : "warning"}>{cloudStatus}</Badge>
-            <Badge tone={sessionActive ? "success" : "warning"}>{sessionActive ? "Sesión activa" : "Sin entrar"}</Badge>
-            <Badge tone="info">{boardCode}</Badge>
-            {lastCloudSync && <Badge tone="default">{lastCloudSync}</Badge>}
+      <div className="two-col-wide">
+        <Section title="Acceso simple" subtitle="La idea es que vos y Marisol solo entren con su nombre y trabajen. Nada de pegar URLs todos los días.">
+          <div className="chips" style={{ marginBottom: 14 }}>
+            <Badge tone={cloudClient ? "good" : "warn"}>{cloudStatus}</Badge>
+            <Badge tone={sessionActive ? "good" : "warn"}>{sessionActive ? "Sesión activa" : "Sin entrar"}</Badge>
+            <Badge tone="soft">{boardCode}</Badge>
+            {lastCloudSync ? <Badge tone="soft">{lastCloudSync}</Badge> : null}
           </div>
-
-          <div className="grid gap-4 md:grid-cols-[1fr_auto]">
-            <input value={activeUser} onChange={(e) => setActiveUser(e.target.value)} placeholder="Tu nombre" className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm text-zinc-200 outline-none" />
-            {!sessionActive ? (
-              <button onClick={startSimpleSession} className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-zinc-900">
-                <LogIn className="h-4 w-4" />
-                Entrar
-              </button>
-            ) : (
-              <button onClick={endSimpleSession} className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-zinc-200">
-                <LogOut className="h-4 w-4" />
-                Salir
-              </button>
-            )}
+          <div className="grid-2">
+            <input value={activeUser} onChange={(e) => setActiveUser(e.target.value)} placeholder="Tu nombre" />
+            {!sessionActive ? <button className="btn btn-primary" onClick={() => setSessionActive(true)}>Entrar</button> : <button className="btn btn-soft" onClick={() => setSessionActive(false)}>Salir</button>}
           </div>
-
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-zinc-300">
-              <div className="mb-2 font-semibold text-white">Cómo debería sentirse</div>
-              <p className="leading-6">Abrís la app, iniciás sesión y listo. Si la nube ya quedó fija por detrás, el tablero compartido se carga solo y todo lo que cambien ambas se guarda para las dos.</p>
-            </div>
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-sm text-zinc-300">
-              <div className="mb-2 font-semibold text-white">Qué pasa si hoy está local</div>
-              <p className="leading-6">Si ves “Modo local”, la parte técnica todavía no quedó configurada una sola vez. La app sigue funcionando, pero cada navegador guarda por separado.</p>
-            </div>
+          {cloudError ? <div className="note">{cloudError}</div> : null}
+        </Section>
+        <Section title="Modo de trabajo" subtitle="Más simple y más parecido a una herramienta de uso diario.">
+          <div className="stack small muted">
+            <div>• Ya no hace falta mostrar URL, anon key o códigos técnicos en pantalla para trabajar todos los días.</div>
+            <div>• La nube queda fija por detrás una sola vez y después ustedes solo entran con su nombre.</div>
+            <div>• El tablero compartido es uno solo, así ambas ven y modifican lo mismo.</div>
+            <div>• Si una cambia algo, la otra lo ve cuando la nube está configurada.</div>
           </div>
-
-          <div className="mt-4 flex flex-wrap gap-3">
-            <button onClick={() => pullFromCloud(false)} disabled={!cloudClient || !sessionActive} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-200 disabled:opacity-40">
-              Actualizar cambios
-            </button>
-            <button onClick={() => pushToCloud(false)} disabled={!cloudClient || !sessionActive} className="rounded-2xl border border-white/10 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-200 disabled:opacity-40">
-              Guardar ahora
-            </button>
-          </div>
-
-          {cloudError && <div className="mt-4 rounded-2xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">{cloudError}</div>}
-        </SectionCard>
-
-        <SectionCard title="Modo de trabajo" subtitle="Más simple y más parecido a una herramienta de uso diario.">
-          <div className="space-y-3 text-sm leading-6 text-zinc-400">
-            <p>• Ya no hace falta mostrar URL, anon key o códigos técnicos en pantalla para trabajar todos los días.</p>
-            <p>• La nube queda fija por detrás una sola vez y después ustedes solo entran con su nombre.</p>
-            <p>• El tablero compartido es uno solo, así ambas ven y modifican lo mismo.</p>
-            <p>• Si una cambia algo, la otra lo ve cuando la nube está configurada.</p>
-          </div>
-          <button onClick={resetDemoData} className="mt-4 inline-flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-4 py-2 text-sm font-semibold text-zinc-200">
-            <RefreshCcw className="h-4 w-4" />
-            Restablecer demo
-          </button>
-        </SectionCard>
+        </Section>
       </div>
     );
   }
 
   function renderActiveTab() {
-    if (activeTab === "contenido") return <div>{renderContenido()}</div>;
-    if (activeTab === "calendario") return <div>{renderCalendario()}</div>;
-    if (activeTab === "equipo") return <div>{renderEquipo()}</div>;
-    if (activeTab === "ajustes") return <div>{renderAjustes()}</div>;
-    return <div>{renderDashboard()}</div>;
+    if (activeTab === "contenido") return renderContenido();
+    if (activeTab === "calendario") return renderCalendario();
+    if (activeTab === "equipo") return renderEquipo();
+    if (activeTab === "ajustes") return renderAjustes();
+    return renderDashboard();
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_28%),radial-gradient(circle_at_top_left,rgba(56,189,248,0.10),transparent_22%),linear-gradient(180deg,#050509_0%,#09090f_45%,#050509_100%)] text-zinc-100">
-      <div className="mx-auto flex max-w-[1600px] gap-6 p-4 md:p-6">
-        <aside className="sticky top-4 hidden h-[calc(100vh-2rem)] w-[280px] shrink-0 rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(12,12,18,0.96),rgba(8,8,12,0.88))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl xl:flex xl:flex-col">
+    <>
+      <style>{css}</style>
+      <div className="app-shell">
+        <aside className="sidebar">
           <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300">
-              <Sparkles className="h-3.5 w-3.5" />
-              Panel CM premium
-            </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-white">Control premium</h1>
-            <p className="mt-2 text-sm leading-6 text-zinc-400">Más simple para usar todos los días y con lectura de métricas mucho más útil.</p>
+            <div className="pill-label">✨ Panel CM premium</div>
+            <div className="brand-title">Control premium</div>
+            <p className="brand-sub">Más simple para usar todos los días y con lectura de métricas mucho más útil.</p>
           </div>
-
-          <nav className="mt-8 space-y-2">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left text-sm font-medium transition ${active ? "bg-gradient-to-r from-fuchsia-400 to-violet-300 text-zinc-950 shadow-[0_10px_30px_rgba(168,85,247,0.25)]" : "border border-white/10 bg-white/[0.03] text-zinc-300 hover:bg-white/[0.06]"}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+          <nav className="nav">
+            <button className={activeTab === "dashboard" ? "active" : ""} onClick={() => setActiveTab("dashboard")}>Dashboard</button>
+            <button className={activeTab === "contenido" ? "active" : ""} onClick={() => setActiveTab("contenido")}>Contenido</button>
+            <button className={activeTab === "calendario" ? "active" : ""} onClick={() => setActiveTab("calendario")}>Calendario</button>
+            <button className={activeTab === "equipo" ? "active" : ""} onClick={() => setActiveTab("equipo")}>Equipo</button>
+            <button className={activeTab === "ajustes" ? "active" : ""} onClick={() => setActiveTab("ajustes")}>Ajustes</button>
           </nav>
-
-          <div className="mt-auto rounded-[28px] border border-white/10 bg-white/[0.04] p-4">
-            <div className="text-xs uppercase tracking-[0.2em] text-zinc-500">Sesión</div>
-            <div className="mt-2 text-sm font-medium text-white">{activeUser || "Sin nombre"}</div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <Badge tone={sessionActive ? "success" : "warning"}>{sessionActive ? "Activa" : "Pendiente"}</Badge>
-              <Badge tone={cloudClient ? "info" : "default"}>{cloudClient ? cloudStatus : "Local"}</Badge>
+          <div className="session-box">
+            <small>Sesión</small>
+            <div style={{ marginTop: 8, fontWeight: 700 }}>{activeUser || "Sin nombre"}</div>
+            <div className="chips" style={{ marginTop: 10 }}>
+              <Badge tone={sessionActive ? "good" : "warn"}>{sessionActive ? "Activa" : "Pendiente"}</Badge>
+              <Badge tone="soft">Local</Badge>
             </div>
           </div>
         </aside>
-
-        <main className="min-w-0 flex-1 space-y-6">
-          <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-gradient-to-br from-zinc-900 via-zinc-950 to-black p-6 shadow-2xl md:p-8">
-            <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-fuchsia-500/10 blur-3xl" />
-            <div className="pointer-events-none absolute -bottom-20 left-1/3 h-56 w-56 rounded-full bg-sky-500/10 blur-3xl" />
-            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+        <main className="main">
+          <div className="hero">
+            <div className="hero-top">
               <div>
-                <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-300 xl:hidden">
-                  <Sparkles className="h-3.5 w-3.5" />
-                  Panel CM premium
-                </div>
-                <h1 className="text-3xl font-semibold tracking-tight text-white md:text-5xl md:leading-[1.05]">
-                  {TABS.find((tab) => tab.id === activeTab)?.label || "Dashboard"}
-                </h1>
-                <p className="mt-3 max-w-3xl text-sm leading-6 text-zinc-400 md:text-[15px]">
-                  Visual tipo app de pago, navegación lateral, buscador rápido y una forma de trabajo mucho menos engorrosa.
-                </p>
+                <div className="pill-label">✨ Panel CM premium</div>
+                <div className="hero-title">{activeTab === "dashboard" ? "Dashboard" : activeTab === "contenido" ? "Contenido" : activeTab === "calendario" ? "Calendario" : activeTab === "equipo" ? "Equipo" : "Ajustes"}</div>
+                <p className="hero-sub">Visual tipo app de pago, buscador rápido y una forma de trabajo mucho menos engorrosa. Este archivo ya trae el estilo adentro, así no tenés que tocar otras carpetas.</p>
               </div>
-
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  onClick={() => setShowItemModal(true)}
-                  className="inline-flex items-center gap-2 rounded-2xl bg-gradient-to-r from-fuchsia-400 to-violet-300 px-4 py-2.5 text-sm font-semibold text-zinc-950 shadow-[0_10px_30px_rgba(168,85,247,0.28)] transition hover:scale-[1.02]"
-                >
-                  <Plus className="h-4 w-4" />
-                  Nuevo contenido
-                </button>
-
-                <button onClick={() => setShowTaskModal(true)} className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-2.5 text-sm font-semibold text-zinc-200">
-                  Nueva tarea
-                </button>
+              <div className="actions-row">
+                <button className="btn btn-primary" onClick={() => setShowItemModal(true)}>+ Nuevo contenido</button>
+                <button className="btn btn-soft" onClick={() => setShowTaskModal(true)}>Nueva tarea</button>
               </div>
             </div>
-
-            <div className="relative mt-5 flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-              <div className="flex flex-wrap gap-2 rounded-[24px] border border-white/10 bg-white/[0.03] p-2">
-                {mesas.map((mesa) => {
-                  const active = safeCurrentWorkspace === mesa;
-                  return (
-                    <button
-                      key={mesa}
-                      onClick={() => setWorkspaceFilter(mesa)}
-                      className={`rounded-2xl px-4 py-2 text-sm font-medium transition ${active ? "bg-gradient-to-r from-fuchsia-400 to-violet-300 text-zinc-950 shadow-[0_8px_24px_rgba(168,85,247,0.24)]" : "text-zinc-300 hover:bg-white/[0.06]"}`}
-                    >
-                      {mesa}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex w-full max-w-xl items-center gap-3 rounded-[24px] border border-white/10 bg-black/20 px-4 py-3 backdrop-blur xl:w-[420px]">
-                <Search className="h-4 w-4 text-zinc-500" />
-                <input
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Buscar contenido, cliente, campaña o tarea"
-                  className="w-full bg-transparent text-sm text-zinc-200 outline-none placeholder:text-zinc-500"
-                />
-              </div>
+            <div className="filters-row" style={{ marginTop: 14 }}>
+              {mesas.map((mesa) => <button key={mesa} className={`workspace-chip ${safeCurrentWorkspace === mesa ? "active" : ""}`} onClick={() => setWorkspaceFilter(mesa)}>{mesa}</button>)}
+            </div>
+            <div className="search-box">
+              <span>🔎</span>
+              <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar contenido, cliente, campaña o tarea" />
             </div>
           </div>
-
-          <div className="xl:hidden flex gap-2 overflow-x-auto pb-1">
-            {TABS.map((tab) => {
-              const Icon = tab.icon;
-              const active = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex shrink-0 items-center gap-2 rounded-2xl px-4 py-2 text-sm font-medium ${active ? "bg-gradient-to-r from-fuchsia-400 to-violet-300 text-zinc-950" : "border border-white/10 bg-white/[0.04] text-zinc-300"}`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="tab-row-mobile">
+            <button className={`workspace-chip ${activeTab === "dashboard" ? "active" : ""}`} onClick={() => setActiveTab("dashboard")}>Dashboard</button>
+            <button className={`workspace-chip ${activeTab === "contenido" ? "active" : ""}`} onClick={() => setActiveTab("contenido")}>Contenido</button>
+            <button className={`workspace-chip ${activeTab === "calendario" ? "active" : ""}`} onClick={() => setActiveTab("calendario")}>Calendario</button>
+            <button className={`workspace-chip ${activeTab === "equipo" ? "active" : ""}`} onClick={() => setActiveTab("equipo")}>Equipo</button>
+            <button className={`workspace-chip ${activeTab === "ajustes" ? "active" : ""}`} onClick={() => setActiveTab("ajustes")}>Ajustes</button>
           </div>
-
           {renderActiveTab()}
         </main>
       </div>
 
-      
-        {showItemModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-            <div className="w-full max-w-4xl rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,26,0.96),rgba(10,10,16,0.94))] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div>
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Modal premium
-                  </div>
-                  <h3 className="text-2xl font-semibold tracking-tight text-white">Crear contenido</h3>
-                  <p className="mt-1 text-sm text-zinc-400">Carga rápida, limpia y separada del tablero principal.</p>
-                </div>
-                <button onClick={closeItemModal} className="rounded-2xl border border-white/10 bg-white/[0.04] p-2 text-zinc-300">
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddItem} className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                <select value={newItem.mesa} onChange={(e) => setNewItem((prev) => ({ ...prev, mesa: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none">
-                  {workspaces.map((mesa) => (
-                    <SafeOption key={mesa}>{mesa}</SafeOption>
-                  ))}
-                </select>
-                <input value={newItem.nombre} onChange={(e) => setNewItem((prev) => ({ ...prev, nombre: e.target.value }))} placeholder="Nombre del contenido" className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none xl:col-span-2" />
-                <input type="date" value={newItem.fecha} onChange={(e) => setNewItem((prev) => ({ ...prev, fecha: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none" />
-                <input type="time" value={newItem.hora} onChange={(e) => setNewItem((prev) => ({ ...prev, hora: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none" />
-                <select value={newItem.red} onChange={(e) => setNewItem((prev) => ({ ...prev, red: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none">
-                  <SafeOption>Instagram</SafeOption>
-                  <SafeOption>Facebook</SafeOption>
-                  <SafeOption>TikTok</SafeOption>
-                  <SafeOption>LinkedIn</SafeOption>
-                </select>
-                <select value={newItem.tipo} onChange={(e) => setNewItem((prev) => ({ ...prev, tipo: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none">
-                  <SafeOption>Post</SafeOption>
-                  <SafeOption>Reel</SafeOption>
-                  <SafeOption>Historia</SafeOption>
-                  <SafeOption>Carrusel</SafeOption>
-                  <SafeOption>Anuncio</SafeOption>
-                </select>
-                <select value={newItem.objetivo} onChange={(e) => setNewItem((prev) => ({ ...prev, objetivo: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none">
-                  <SafeOption>Alcance</SafeOption>
-                  <SafeOption>Interacción</SafeOption>
-                  <SafeOption>Comunidad</SafeOption>
-                  <SafeOption>Leads</SafeOption>
-                  <SafeOption>Ventas</SafeOption>
-                </select>
-                <select value={newItem.estado} onChange={(e) => setNewItem((prev) => ({ ...prev, estado: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none">
-                  <SafeOption>Programado</SafeOption>
-                  <SafeOption>Editando</SafeOption>
-                  <SafeOption>Editado</SafeOption>
-                  <SafeOption>Publicado</SafeOption>
-                </select>
-                <input value={newItem.campana} onChange={(e) => setNewItem((prev) => ({ ...prev, campana: e.target.value }))} placeholder="Tema / campaña" className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none xl:col-span-2" />
-                <input value={newItem.link} onChange={(e) => setNewItem((prev) => ({ ...prev, link: e.target.value }))} placeholder="Link de pieza" className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none xl:col-span-3" />
-
-                <div className="mt-2 flex flex-wrap gap-3 xl:col-span-3">
-                  <button type="button" onClick={closeItemModal} className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-zinc-200">
-                    Cancelar
-                  </button>
-                  <button type="submit" className="rounded-2xl bg-gradient-to-r from-fuchsia-400 to-violet-300 px-5 py-3 text-sm font-semibold text-zinc-950 shadow-[0_10px_30px_rgba(168,85,247,0.28)]">
-                    Guardar contenido
-                  </button>
-                </div>
-              </form>
+      {showItemModal ? (
+        <div className="modal-backdrop">
+          <div className="modal">
+            <div className="modal-head">
+              <div><div className="pill-label">✨ Modal premium</div><h3>Crear contenido</h3><p className="brand-sub">Carga rápida y limpia, separada del tablero principal.</p></div>
+              <button className="close-btn" onClick={closeItemModal}>✕</button>
             </div>
-          </div>
-        )}
-      
-
-      
-        {showTaskModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-md">
-            <div className="w-full max-w-2xl rounded-[32px] border border-white/10 bg-[linear-gradient(135deg,rgba(18,18,26,0.96),rgba(10,10,16,0.94))] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
-              <div className="mb-5 flex items-start justify-between gap-4">
-                <div>
-                  <div className="mb-2 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-xs text-zinc-300">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Modal premium
-                  </div>
-                  <h3 className="text-2xl font-semibold tracking-tight text-white">Crear tarea</h3>
-                  <p className="mt-1 text-sm text-zinc-400">Rápida y limpia para el equipo.</p>
-                </div>
-                <button onClick={closeTaskModal} className="rounded-2xl border border-white/10 bg-white/[0.04] p-2 text-zinc-300">
-                  <X className="h-5 w-5" />
-                </button>
+            <form onSubmit={handleAddItem} className="form-grid-3">
+              <select value={newItem.mesa} onChange={(e) => setNewItem((prev) => ({ ...prev, mesa: e.target.value }))}>{workspaces.map((mesa) => <option key={mesa}>{mesa}</option>)}</select>
+              <input className="span-2" value={newItem.nombre} onChange={(e) => setNewItem((prev) => ({ ...prev, nombre: e.target.value }))} placeholder="Nombre del contenido" />
+              <input type="date" value={newItem.fecha} onChange={(e) => setNewItem((prev) => ({ ...prev, fecha: e.target.value }))} />
+              <input type="time" value={newItem.hora} onChange={(e) => setNewItem((prev) => ({ ...prev, hora: e.target.value }))} />
+              <select value={newItem.red} onChange={(e) => setNewItem((prev) => ({ ...prev, red: e.target.value }))}><option>Instagram</option><option>Facebook</option><option>TikTok</option><option>LinkedIn</option></select>
+              <select value={newItem.tipo} onChange={(e) => setNewItem((prev) => ({ ...prev, tipo: e.target.value }))}><option>Post</option><option>Reel</option><option>Historia</option><option>Carrusel</option><option>Anuncio</option></select>
+              <select value={newItem.objetivo} onChange={(e) => setNewItem((prev) => ({ ...prev, objetivo: e.target.value }))}><option>Alcance</option><option>Interacción</option><option>Comunidad</option><option>Leads</option><option>Ventas</option></select>
+              <select value={newItem.estado} onChange={(e) => setNewItem((prev) => ({ ...prev, estado: e.target.value }))}><option>Programado</option><option>Editando</option><option>Editado</option><option>Publicado</option></select>
+              <input className="span-2" value={newItem.campana} onChange={(e) => setNewItem((prev) => ({ ...prev, campana: e.target.value }))} placeholder="Tema / campaña" />
+              <input className="span-3" value={newItem.link} onChange={(e) => setNewItem((prev) => ({ ...prev, link: e.target.value }))} placeholder="Link de pieza" />
+              <div className="actions-row span-3" style={{ marginTop: 6 }}>
+                <button type="button" className="btn btn-soft" onClick={closeItemModal}>Cancelar</button>
+                <button type="submit" className="btn btn-primary">Guardar contenido</button>
               </div>
-
-              <form onSubmit={handleAddTask} className="grid gap-4 md:grid-cols-2">
-                <input value={newTask.tarea} onChange={(e) => setNewTask((prev) => ({ ...prev, tarea: e.target.value }))} placeholder="Nueva tarea" className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none md:col-span-2" />
-                <select value={newTask.mesa} onChange={(e) => setNewTask((prev) => ({ ...prev, mesa: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none">
-                  {workspaces.map((mesa) => (
-                    <SafeOption key={mesa}>{mesa}</SafeOption>
-                  ))}
-                </select>
-                <select value={newTask.prioridad} onChange={(e) => setNewTask((prev) => ({ ...prev, prioridad: e.target.value }))} className="rounded-2xl border border-white/10 bg-zinc-900/80 px-3 py-3 text-sm outline-none">
-                  <SafeOption>Alta</SafeOption>
-                  <SafeOption>Media</SafeOption>
-                  <SafeOption>Baja</SafeOption>
-                </select>
-                <div className="mt-2 flex flex-wrap gap-3 md:col-span-2">
-                  <button type="button" onClick={closeTaskModal} className="rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-3 text-sm font-semibold text-zinc-200">Cancelar</button>
-                  <button type="submit" className="rounded-2xl bg-gradient-to-r from-fuchsia-400 to-violet-300 px-5 py-3 text-sm font-semibold text-zinc-950 shadow-[0_10px_30px_rgba(168,85,247,0.28)]">Guardar tarea</button>
-                </div>
-              </form>
-            </div>
+            </form>
           </div>
-        )}
-      
-    </div>
+        </div>
+      ) : null}
+
+      {showTaskModal ? (
+        <div className="modal-backdrop">
+          <div className="modal small-modal">
+            <div className="modal-head">
+              <div><div className="pill-label">✨ Modal premium</div><h3>Crear tarea</h3><p className="brand-sub">Rápida y limpia para el equipo.</p></div>
+              <button className="close-btn" onClick={closeTaskModal}>✕</button>
+            </div>
+            <form onSubmit={handleAddTask} className="form-grid-2">
+              <input className="span-2" value={newTask.tarea} onChange={(e) => setNewTask((prev) => ({ ...prev, tarea: e.target.value }))} placeholder="Nueva tarea" />
+              <select value={newTask.mesa} onChange={(e) => setNewTask((prev) => ({ ...prev, mesa: e.target.value }))}>{workspaces.map((mesa) => <option key={mesa}>{mesa}</option>)}</select>
+              <select value={newTask.prioridad} onChange={(e) => setNewTask((prev) => ({ ...prev, prioridad: e.target.value }))}><option>Alta</option><option>Media</option><option>Baja</option></select>
+              <div className="actions-row span-2" style={{ marginTop: 6 }}>
+                <button type="button" className="btn btn-soft" onClick={closeTaskModal}>Cancelar</button>
+                <button type="submit" className="btn btn-primary">Guardar tarea</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }
